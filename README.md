@@ -21,7 +21,7 @@
 
 ## Overview
 
-Store Intelligence is a **production-grade retail analytics platform** that transforms raw CCTV footage into actionable business intelligence — in real time.
+Meridian is a **production-grade retail analytics platform** that transforms raw CCTV footage into actionable business intelligence — in real time.
 
 It answers the questions every retail operator needs:
 - **How many unique visitors** entered the store today?
@@ -29,7 +29,7 @@ It answers the questions every retail operator needs:
 - **What is the conversion rate** from entry -> browse -> checkout?
 - **Are there anomalies** in foot traffic or queue behaviour?
 
-The platform processes video via an on-premises **Edge Node** (no footage leaves the building), routes anonymized telemetry through a **Redis Streams** pipeline, resolves individual identities using **biometric ReID** (ResNet50 + pgvector cosine similarity), and surfaces everything through a live **React dashboard** with Server-Sent Events.
+It processes video via an on-premises **Edge Node** (no footage leaves the building), routes anonymised telemetry through a **Redis Streams** pipeline, resolves individual identities using **biometric ReID** (ResNet50 + pgvector cosine similarity), and surfaces everything through a live **React dashboard** with Server-Sent Events.
 
 ---
 
@@ -41,7 +41,7 @@ The platform processes video via an on-premises **Edge Node** (no footage leaves
 | **Identity Re-ID** | ResNet50 appearance embeddings (2048-d) matched via pgvector cosine similarity |
 | **Zone Analytics** | Polygon-based spatial zones (Entry, Display, Queue, Aisle) |
 | **Real-time Dashboard** | Live KPIs streamed via SSE — footfall, unique visitors, GMV, conversion |
-| **Heatmap Overlay** | Normalized dwell time density per zone rendered on canvas |
+| **Heatmap Overlay** | Normalised dwell time density per zone rendered on canvas |
 | **Anomaly Detection** | Queue spike and abandonment rate heuristics |
 | **Multi-Store** | Supports multiple store locations from a single deployment |
 | **Event Sourcing** | Append-only PostgreSQL event log — full audit trail |
