@@ -1,0 +1,249 @@
+# =============================================================================
+# Store Intelligence Platform — Docker Compose
+# =============================================================================
+# Purpose: Local development and staging orchestration.
+# Responsibilities:
+#   - Spin up the state layer (PostgreSQL + pgvector, Redis Streams)
+#   - Orchestrate the cloud microservices (Backend API, Event Engine, ReID)
+#   - Optionally run a single Edge Node for batch processing local CCTV files
+#   - Serve the production React dashboard via nginx
+#
+# Setup:
+#   1. cp .env.example .env
+#   2. Edit .env with your values (especially POSTGRES_PASSWORD)
+#   3. docker compose up -d
+#
+# All credentials are loaded exclusively from the .env file.
+# No secrets are hardcoded in this file.
+# =============================================================================
+
+networks:
+  # Internal network — backend services communicate here; not exposed externally
+  si-internal:
+    driver: bridge
+  # Public network — only the frontend and backend-api are on this network
+  si-public:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+# Shared environment variables block — inherited by all Python microservices
+x-common-env: &common-env
+  POSTGRES_SERVER: ${POSTGRES_SERVER:-postgres}
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required — copy .env.example to .env}
+  POSTGRES_DB: ${POSTGRES_DB:-store_intelligence}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  REDIS_URI: ${REDIS_URI:-redis://redis:6379/0}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  REID_DISTANCE_THRESHOLD: ${REID_DISTANCE_THRESHOLD:-0.48}
+
+services:
+
+  # ============================================================
+  # STATE LAYER
+  # ============================================================
+
+  postgres:
+    # CRITICAL: Must use the pgvector image — the standard postgres image does NOT
+    # include the vector extension required for ReID embedding similarity search.
+    image: pgvector/pgvector:pg16
+    container_name: si_postgres
+    restart: unless-stopped
+    networks:
+      - si-internal
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-store_intelligence}
+    ports:
+      # Expose only for local dev tooling (DBeaver, psql). Comment out in staging.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-store_intelligence}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  redis:
+    image: redis:7-alpine
+    container_name: si_redis
+    restart: unless-stopped
+    networks:
+      - si-internal
+    # noeviction is crucial to reject new writes when full instead of silently dropping telemetry data
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "2gb", "--maxmemory-policy", "noeviction"]
+    ports:
+      # Expose only for local dev. Comment out in staging.
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ============================================================
+  # CLOUD MICROSERVICES
+  # ============================================================
+
+  backend-api:
+    build:
+      context: ./backend-api
+      dockerfile: Dockerfile
+    container_name: si_backend_api
+    restart: unless-stopped
+    networks:
+      - si-internal
+      - si-public
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *common-env
+      # Comma-separated list of allowed CORS origins.
+      # In production: set to your Vercel frontend URL.
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173}
+      REID_MODEL_PATH: /edge-node/weights/fastreid_r50.onnx
+    volumes:
+      # Mount edge-node source so the pipeline upload endpoint can run VisionPipeline
+      - ./edge-node/src:/edge-node/src:ro
+      - ./edge-node/weights:/edge-node/weights:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  reid-service:
+    build:
+      context: ./reid-service
+      dockerfile: Dockerfile
+    container_name: si_reid_service
+    restart: unless-stopped
+    networks:
+      - si-internal
+    environment:
+      <<: *common-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+
+  event-engine:
+    build:
+      context: ./event-engine
+      dockerfile: Dockerfile
+    container_name: si_event_engine
+    restart: unless-stopped
+    networks:
+      - si-internal
+    environment:
+      <<: *common-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend-api:
+        condition: service_healthy
+
+  # ============================================================
+  # EDGE PROCESSING (LOCAL ONLY — not deployed to cloud)
+  # ============================================================
+
+  # Single edge node that processes all cameras SEQUENTIALLY.
+  # This avoids N×CPU overload and RTSP stream instability.
+  # Video files are bind-mounted from the host — they are NOT baked into the image.
+  #
+  # IMPORTANT: Before running, place your video files in a local directory and
+  # update the volume mount below (or set CAMERA_LIST in .env to RTSP URLs).
+  #
+  # To skip video processing and use the platform with demo/seeded data only:
+  #   docker compose up -d --scale edge-node=0
+  edge-node:
+    build:
+      context: ./edge-node
+      dockerfile: Dockerfile
+    container_name: si_edge_node
+    restart: "no"
+    networks:
+      - si-internal
+    environment:
+      REDIS_URI: ${REDIS_URI:-redis://redis:6379/0}
+      STORE_ID: ${STORE_ID:-a1b2c3d4-0001-4000-8000-000000000001}
+      CAMERA_LIST: ${CAMERA_LIST:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      # Mount your local CCTV footage directory to /videos inside the container.
+      # Update the left side of the colon to your local path.
+      # Example: ./my-footage:/videos:ro
+      # The CCTV sources/ folder is gitignored — provide your own footage.
+      - ${VIDEO_SOURCE_DIR:-./CCTV sources}:/videos:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ============================================================
+  # FRONTEND DASHBOARD
+  # ============================================================
+
+  frontend-dashboard:
+    build:
+      context: ./frontend-dashboard
+      dockerfile: Dockerfile
+      args:
+        # VITE_ vars must be passed as build args because Vite embeds them
+        # into the JavaScript bundle at compile time (not runtime).
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+    container_name: si_dashboard
+    restart: unless-stopped
+    networks:
+      - si-public
+    ports:
+      - "80:80"
+    depends_on:
+      backend-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

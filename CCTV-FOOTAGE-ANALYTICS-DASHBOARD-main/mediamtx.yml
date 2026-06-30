@@ -1,0 +1,24 @@
+paths:
+  all:
+    readUser:
+    readPass:
+
+  cam1:
+    runOnInit: ffmpeg -re -stream_loop -1 -i "/videos/CAM 1.mp4" -c:v libx264 -preset superfast -tune zerolatency -bf 0 -g 30 -an -f rtsp rtsp://localhost:$RTSP_PORT/$RTSP_PATH
+    runOnInitRestart: yes
+
+  cam2:
+    runOnInit: ffmpeg -re -stream_loop -1 -i "/videos/CAM 2.mp4" -c:v libx264 -preset superfast -tune zerolatency -bf 0 -g 30 -an -f rtsp rtsp://localhost:$RTSP_PORT/$RTSP_PATH
+    runOnInitRestart: yes
+
+  cam3:
+    runOnInit: ffmpeg -re -stream_loop -1 -i "/videos/CAM 3.mp4" -c:v libx264 -preset superfast -tune zerolatency -bf 0 -g 30 -an -f rtsp rtsp://localhost:$RTSP_PORT/$RTSP_PATH
+    runOnInitRestart: yes
+
+  cam4:
+    runOnInit: ffmpeg -re -stream_loop -1 -i "/videos/CAM 4.mp4" -c:v libx264 -preset superfast -tune zerolatency -bf 0 -g 30 -an -f rtsp rtsp://localhost:$RTSP_PORT/$RTSP_PATH
+    runOnInitRestart: yes
+
+  cam5:
+    runOnInit: ffmpeg -re -stream_loop -1 -i "/videos/CAM 5.mp4" -c:v libx264 -preset superfast -tune zerolatency -bf 0 -g 30 -an -f rtsp rtsp://localhost:$RTSP_PORT/$RTSP_PATH
+    runOnInitRestart: yes

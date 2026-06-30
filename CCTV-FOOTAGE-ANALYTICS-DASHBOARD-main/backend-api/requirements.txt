@@ -1,0 +1,37 @@
+# ==========================================
+# Store Intelligence - Backend API Dependencies
+# ==========================================
+
+# Core Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Database & ORM
+# SQLAlchemy 2.0+ is strictly required for the new Mapped paradigms
+sqlalchemy[asyncio]>=2.0.25 
+asyncpg>=0.29.0
+alembic>=1.13.1
+pgvector>=0.2.4
+
+# Redis Integration
+redis>=5.0.1
+
+# Real-time WebSockets
+websockets>=12.0
+
+# File Upload support (required for multipart/form-data)
+python-multipart>=0.0.9
+
+# Observability & Utilities
+python-json-logger>=2.0.7
+
+# Edge-Node CV Dependencies (for running VisionPipeline inside backend-api)
+# These are needed because the pipeline endpoint imports the edge-node source
+# which is mounted as a Docker volume.
+opencv-python-headless>=4.9.0
+ultralytics>=8.1.0
+lapx>=0.5.5
+onnxruntime>=1.17.0
+numpy<2.0.0

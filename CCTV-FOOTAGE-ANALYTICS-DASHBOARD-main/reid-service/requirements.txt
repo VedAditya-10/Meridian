@@ -1,0 +1,15 @@
+# ==========================================
+# Store Intelligence - ReID Service Dependencies
+# ==========================================
+
+# Database & Vector Operations
+# pgvector is required for the cosine similarity search over the 2048d biometric arrays
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29.0
+pgvector>=0.2.4
+
+# Message Queue for ingesting Edge telemetry
+redis>=5.0.1
+
+# Observability
+python-json-logger>=2.0.7

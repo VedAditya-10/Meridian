@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# ML model weights (auto-downloaded at runtime — not baked into image)
+*.pt
+*.pth
+*.onnx
+runs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md

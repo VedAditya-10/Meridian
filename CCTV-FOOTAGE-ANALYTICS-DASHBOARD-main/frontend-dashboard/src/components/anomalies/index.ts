@@ -1,0 +1,1 @@
+export { AnomalyCard } from './AnomalyCard';

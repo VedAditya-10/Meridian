@@ -1,0 +1,54 @@
+# =============================================================================
+# Store Intelligence Platform — Git Attributes
+# Ensures consistent line endings and binary file handling across platforms.
+# =============================================================================
+
+# Default: normalize all text files to LF in the repo (auto-convert on checkout)
+* text=auto eol=lf
+
+# Force LF for all code and config files
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.ini   text eol=lf
+*.cfg   text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.sh    text eol=lf
+*.sql   text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.env.example text eol=lf
+*.gitignore   text eol=lf
+Dockerfile    text eol=lf
+*.dockerignore text eol=lf
+
+# Mark binary files explicitly so Git never tries to diff/merge them
+*.pt    binary
+*.pth   binary
+*.onnx  binary
+*.weights binary
+*.mp4   binary
+*.avi   binary
+*.mkv   binary
+*.mov   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+
+# Linguist overrides for GitHub language stats
+# Exclude generated/vendor code from language breakdown
+frontend-dashboard/dist/** linguist-generated=true
+frontend-dashboard/node_modules/** linguist-vendored=true

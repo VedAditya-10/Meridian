@@ -1,0 +1,51 @@
+name: Store Intelligence CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies (Backend)
+      run: |
+        python -m pip install --upgrade pip
+        cd backend-api
+        pip install -r requirements.txt
+        pip install pytest httpx
+
+    - name: Run Backend Tests
+      run: |
+        cd backend-api
+        # Replace with actual pytest command when fully implemented
+        echo "Running pytest..."
+        # pytest tests/
+
+    - name: Setup Node.js (Frontend)
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Build Frontend
+      run: |
+        cd frontend-dashboard
+        npm install
+        npm run build
+
+    - name: Validate Docker Compose
+      run: |
+        echo "POSTGRES_PASSWORD=dummy_password" > .env
+        touch .env.hybrid
+        docker compose -f docker-compose.yml config
+        docker compose -f docker-compose.workers.yml config

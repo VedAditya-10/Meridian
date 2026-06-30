@@ -1,0 +1,17 @@
+# ==========================================
+# Store Intelligence - Event Engine Dependencies
+# ==========================================
+
+# Core spatial reasoning for Point-in-Polygon calculations
+shapely>=2.0.2
+
+# High-throughput asynchronous Redis Stream consumption
+redis>=5.0.1
+
+# Observability
+python-json-logger>=2.0.7
+
+# Database
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29.0
+pgvector>=0.2.4

@@ -1,0 +1,71 @@
+# =============================================================================
+# LOCAL WORKERS — Hybrid Cloud Deployment
+# =============================================================================
+# Purpose: Run only the local processing workers on your machine.
+#          They connect to CLOUD Neon (Postgres) and Upstash (Redis).
+#
+# Setup:
+#   1. Copy .env.hybrid.example to .env.hybrid
+#   2. Fill in your Neon and Upstash credentials
+#   3. Run: docker compose -f docker-compose.workers.yml up -d
+#
+# What this runs locally:
+#   - event-engine  (Redis stream consumer → writes events to Neon Postgres)
+#   - reid-service  (biometric identity matcher via pgvector)
+#   - edge-node     (YOLOv8 CV pipeline — needs your local video files)
+#
+# What runs in the cloud (FREE):
+#   - Neon     → PostgreSQL + pgvector
+#   - Upstash  → Redis Streams
+#   - Render   → backend-api (FastAPI)
+#   - Vercel   → React dashboard
+# =============================================================================
+
+services:
+
+  reid-service:
+    build:
+      context: ./reid-service
+      dockerfile: Dockerfile
+    container_name: si_reid_service
+    restart: unless-stopped
+    env_file:
+      - .env.hybrid
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+
+  event-engine:
+    build:
+      context: ./event-engine
+      dockerfile: Dockerfile
+    container_name: si_event_engine
+    restart: unless-stopped
+    env_file:
+      - .env.hybrid
+    depends_on:
+      - reid-service
+
+  edge-node:
+    build:
+      context: ./edge-node
+      dockerfile: Dockerfile
+    container_name: si_edge_node
+    restart: "no"
+    env_file:
+      - .env.hybrid
+    volumes:
+      # Mount your local CCTV footage directory
+      - ${VIDEO_SOURCE_DIR:-./CCTV sources}:/videos:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

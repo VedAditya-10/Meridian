@@ -1,0 +1,26 @@
+# =============================================================================
+# Railway Deployment Configuration — Store Intelligence Platform
+# =============================================================================
+# Railway docs: https://docs.railway.app/reference/config-as-code
+#
+# This file configures how Railway deploys each service.
+# For a monorepo deployment, Railway detects services by Dockerfile location.
+#
+# DEPLOYMENT STEPS:
+# 1. Push this repo to GitHub
+# 2. Go to railway.app → New Project → Deploy from GitHub repo
+# 3. Railway will auto-detect the services
+# 4. Add plugins: PostgreSQL (pgvector image) and Redis
+# 5. Set environment variables in Railway dashboard (use values from .env.example)
+# 6. Deploy!
+# =============================================================================
+
+[build]
+  builder = "DOCKERFILE"
+
+[deploy]
+  # Use Railway's built-in health check via the /health endpoint
+  healthcheckPath = "/health"
+  healthcheckTimeout = 300
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 3
